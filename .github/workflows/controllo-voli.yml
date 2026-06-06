@@ -24,13 +24,13 @@ jobs:
       - name: Avvia controllo voli
         env:
           SERPAPI_KEY: ${{ secrets.SERPAPI_KEY }}
-          ORIGINS: ${{ secrets.ORIGINS }}
-          DESTINATIONS: ${{ secrets.DESTINATIONS }}
-          DEPARTURE_DATE: ${{ secrets.DEPARTURE_DATE }}
-          RETURN_DATE: ${{ secrets.RETURN_DATE }}
-          ADULTS: ${{ secrets.ADULTS }}
-          CURRENCY: ${{ secrets.CURRENCY }}
-          MAX_PRICE: ${{ secrets.MAX_PRICE }}
+          ORIGINS: ${{ vars.ORIGINS }}
+          DESTINATIONS: ${{ vars.DESTINATIONS }}
+          DEPARTURE_DATE: ${{ vars.DEPARTURE_DATE }}
+          RETURN_DATE: ${{ vars.RETURN_DATE }}
+          ADULTS: ${{ vars.ADULTS }}
+          CURRENCY: ${{ vars.CURRENCY }}
+          MAX_PRICE: ${{ vars.MAX_PRICE }}
         run: |
           echo "## Risultati controllo voli" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
