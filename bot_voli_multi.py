@@ -76,30 +76,25 @@ def estrai_volo_piu_economico(dati):
         return None
 
     voli = []
-
     voli.extend(dati.get("best_flights", []))
     voli.extend(dati.get("other_flights", []))
 
     voli_validi = [
-        volo
-        for volo in voli
+        volo for volo in voli
         if isinstance(volo.get("price"), (int, float))
     ]
 
     if not voli_validi:
         return None
 
-    return min(
-        voli_validi,
-        key=lambda volo: volo["price"]
-    )
+    return min(voli_validi, key=lambda volo: volo["price"])
 
 
 def crea_testo_volo(origin, destination, volo):
     prezzo = volo["price"]
 
     testo = (
-        f"Volo trovato\n\n"
+        f"Volo trovato sotto soglia\n\n"
         f"Rotta: {origin} → {destination}\n"
         f"Prezzo totale per {ADULTS} persone: {prezzo} {CURRENCY}\n"
         f"Soglia impostata: {MAX_PRICE} {CURRENCY}\n"
@@ -145,7 +140,19 @@ def stampa_risultato(origin, destination, volo):
 
 
 def main():
-    print("Avvio controllo prezzi voli")
+    print("DEBUG VARIABILI")
+    print("SERPAPI_KEY presente =", bool(SERPAPI_KEY))
+    print("TELEGRAM_BOT_TOKEN presente =", bool(TELEGRAM_BOT_TOKEN))
+    print("TELEGRAM_CHAT_ID presente =", bool(TELEGRAM_CHAT_ID))
+    print("ORIGINS =", repr(ORIGINS))
+    print("DESTINATIONS =", repr(DESTINATIONS))
+    print("DEPARTURE_DATE =", repr(DEPARTURE_DATE))
+    print("RETURN_DATE =", repr(RETURN_DATE))
+    print("ADULTS =", repr(ADULTS))
+    print("CURRENCY =", repr(CURRENCY))
+    print("MAX_PRICE =", repr(MAX_PRICE))
+
+    print("\nAvvio controllo prezzi voli")
     print(f"Partenza: {DEPARTURE_DATE}")
     print(f"Ritorno: {RETURN_DATE}")
     print(f"Adulti: {ADULTS}")
