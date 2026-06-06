@@ -12,9 +12,9 @@ DESTINATIONS = os.getenv("DESTINATIONS", "LHR").split(",")
 DEPARTURE_DATE = os.getenv("DEPARTURE_DATE")
 RETURN_DATE = os.getenv("RETURN_DATE")
 
-ADULTS = int(os.getenv("ADULTS", "2"))
+ADULTS = int(os.getenv("ADULTS") or "2")
 CURRENCY = os.getenv("CURRENCY", "EUR")
-MAX_PRICE = float(os.getenv("MAX_PRICE", "999"))
+MAX_PRICE = float(os.getenv("MAX_PRICE") or "250")
 
 SERPAPI_URL = "https://serpapi.com/search.json"
 
