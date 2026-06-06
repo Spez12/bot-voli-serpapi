@@ -31,5 +31,11 @@ jobs:
           ADULTS: ${{ secrets.ADULTS }}
           CURRENCY: ${{ secrets.CURRENCY }}
           MAX_PRICE: ${{ secrets.MAX_PRICE }}
-        run: python bot_voli_multi.py
-        
+        run: |
+          echo "## Risultati controllo voli" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          python bot_voli_multi.py | tee risultato.txt
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo '```text' >> $GITHUB_STEP_SUMMARY
+          cat risultato.txt >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
