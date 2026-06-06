@@ -1,0 +1,35 @@
+name: Controllo Prezzi Voli
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 */6 * * *"
+
+jobs:
+  controllo-voli:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Scarica repository
+        uses: actions/checkout@v4
+
+      - name: Configura Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Installa dipendenze
+        run: pip install -r requirements.txt
+
+      - name: Avvia controllo voli
+        env:
+          SERPAPI_KEY: ${{ secrets.SERPAPI_KEY }}
+          ORIGINS: ${{ secrets.ORIGINS }}
+          DESTINATIONS: ${{ secrets.DESTINATIONS }}
+          DEPARTURE_DATE: ${{ secrets.DEPARTURE_DATE }}
+          RETURN_DATE: ${{ secrets.RETURN_DATE }}
+          ADULTS: ${{ secrets.ADULTS }}
+          CURRENCY: ${{ secrets.CURRENCY }}
+          MAX_PRICE: ${{ secrets.MAX_PRICE }}
+        run: python bot_voli_multi.py
+        
