@@ -1,4 +1,5 @@
 import os
+import urllib.parse
 import requests
 
 SERPAPI_KEY = os.getenv("SERPAPI_KEY")
@@ -18,6 +19,12 @@ MAX_PRICE = float((os.getenv("MAX_PRICE") or "250").strip())
 SERPAPI_URL = "https://serpapi.com/search.json"
 
 
+def crea_link_google_flights(origin, destination):
+    testo = f"{origin} to {destination} {DEPARTURE_DATE} {RETURN_DATE}"
+    query = urllib.parse.quote(testo)
+    return f"https://www.google.com/travel/flights?q={query}"
+
+
 def invia_notifica_telegram(messaggio):
     if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
         print("Notifica Telegram non configurata.")
@@ -29,7 +36,8 @@ def invia_notifica_telegram(messaggio):
         url,
         data={
             "chat_id": TELEGRAM_CHAT_ID,
-            "text": messaggio
+            "text": messaggio,
+            "disable_web_page_preview": False
         },
         timeout=30
     )
@@ -56,11 +64,7 @@ def cerca_voli(origin, destination):
         "type": "1"
     }
 
-    response = requests.get(
-        SERPAPI_URL,
-        params=params,
-        timeout=60
-    )
+    response = requests.get(SERPAPI_URL, params=params, timeout=60)
 
     if response.status_code != 200:
         print(f"\nErrore su {origin} → {destination}")
@@ -76,33 +80,36 @@ def estrai_volo_piu_economico(dati):
         return None
 
     voli = []
-
     voli.extend(dati.get("best_flights", []))
     voli.extend(dati.get("other_flights", []))
 
     voli_validi = [
-        volo
-        for volo in voli
+        volo for volo in voli
         if isinstance(volo.get("price"), (int, float))
     ]
 
     if not voli_validi:
         return None
 
-    return min(
-        voli_validi,
-        key=lambda volo: volo["price"]
-    )
+    return min(voli_validi, key=lambda volo: volo["price"])
+
+
+def conta_scali(volo):
+    tratte = volo.get("flights", [])
+    return max(len(tratte) - 1, 0)
 
 
 def crea_testo_volo(origin, destination, volo):
     prezzo = volo["price"]
+    scali = conta_scali(volo)
+    link = crea_link_google_flights(origin, destination)
 
     testo = (
         f"Volo trovato sotto soglia\n\n"
         f"Rotta: {origin} → {destination}\n"
         f"Prezzo totale per {ADULTS} persone: {prezzo} {CURRENCY}\n"
         f"Soglia impostata: {MAX_PRICE} {CURRENCY}\n"
+        f"Scali: {scali}\n\n"
     )
 
     for tratta in volo.get("flights", []):
@@ -111,20 +118,24 @@ def crea_testo_volo(origin, destination, volo):
         arrivo = tratta.get("arrival_airport", {})
 
         testo += (
-            f"\nCompagnia: {compagnia}\n"
+            f"Compagnia: {compagnia}\n"
             f"Partenza: {partenza.get('name', 'N/D')} - {partenza.get('time', 'N/D')}\n"
-            f"Arrivo: {arrivo.get('name', 'N/D')} - {arrivo.get('time', 'N/D')}\n"
+            f"Arrivo: {arrivo.get('name', 'N/D')} - {arrivo.get('time', 'N/D')}\n\n"
         )
+
+    testo += f"Apri ricerca Google Flights:\n{link}"
 
     return testo
 
 
 def stampa_risultato(origin, destination, volo):
     prezzo = volo["price"]
+    scali = conta_scali(volo)
 
     print("\n" + "=" * 60)
     print(f"Rotta: {origin} → {destination}")
     print(f"Prezzo totale per {ADULTS} persone: {prezzo} {CURRENCY}")
+    print(f"Scali: {scali}")
 
     if prezzo <= MAX_PRICE:
         print("OFFERTA INTERESSANTE")
@@ -175,6 +186,7 @@ def main():
 
     for origin in ORIGINS:
         for destination in DESTINATIONS:
+            destination = destination.strip().upper()
 
             print("\n" + "-" * 60)
             print(f"Controllo {origin} → {destination}")
