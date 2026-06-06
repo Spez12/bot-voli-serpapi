@@ -24,6 +24,8 @@ jobs:
       - name: Avvia controllo voli
         env:
           SERPAPI_KEY: ${{ secrets.SERPAPI_KEY }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           ORIGINS: ${{ vars.ORIGINS }}
           DESTINATIONS: ${{ vars.DESTINATIONS }}
           DEPARTURE_DATE: ${{ vars.DEPARTURE_DATE }}
