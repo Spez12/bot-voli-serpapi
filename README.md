@@ -1,4 +1,4 @@
-# Bot Voli Amadeus
+# Bot Voli serpapi
 
 Questo progetto controlla i prezzi dei voli tramite Amadeus API.
 
