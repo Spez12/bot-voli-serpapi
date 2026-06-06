@@ -2,6 +2,8 @@ import os
 import requests
 
 SERPAPI_KEY = os.getenv("SERPAPI_KEY")
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 
 ORIGINS = (os.getenv("ORIGINS") or "FCO").split(",")
 DESTINATIONS = (os.getenv("DESTINATIONS") or "LHR").split(",")
@@ -14,6 +16,29 @@ CURRENCY = os.getenv("CURRENCY") or "EUR"
 MAX_PRICE = float(os.getenv("MAX_PRICE") or "250")
 
 SERPAPI_URL = "https://serpapi.com/search.json"
+
+
+def invia_notifica_telegram(messaggio):
+    if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
+        print("Notifica Telegram non configurata.")
+        return
+
+    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+
+    response = requests.post(
+        url,
+        data={
+            "chat_id": TELEGRAM_CHAT_ID,
+            "text": messaggio
+        },
+        timeout=30
+    )
+
+    if response.status_code == 200:
+        print("Notifica Telegram inviata.")
+    else:
+        print("Errore invio notifica Telegram:")
+        print(response.text)
 
 
 def cerca_voli(origin, destination):
@@ -70,6 +95,30 @@ def estrai_volo_piu_economico(dati):
     )
 
 
+def crea_testo_volo(origin, destination, volo):
+    prezzo = volo["price"]
+
+    testo = (
+        f"Volo trovato\n\n"
+        f"Rotta: {origin} → {destination}\n"
+        f"Prezzo totale per {ADULTS} persone: {prezzo} {CURRENCY}\n"
+        f"Soglia impostata: {MAX_PRICE} {CURRENCY}\n"
+    )
+
+    for tratta in volo.get("flights", []):
+        compagnia = tratta.get("airline", "N/D")
+        partenza = tratta.get("departure_airport", {})
+        arrivo = tratta.get("arrival_airport", {})
+
+        testo += (
+            f"\nCompagnia: {compagnia}\n"
+            f"Partenza: {partenza.get('name', 'N/D')} - {partenza.get('time', 'N/D')}\n"
+            f"Arrivo: {arrivo.get('name', 'N/D')} - {arrivo.get('time', 'N/D')}\n"
+        )
+
+    return testo
+
+
 def stampa_risultato(origin, destination, volo):
     prezzo = volo["price"]
 
@@ -86,24 +135,12 @@ def stampa_risultato(origin, destination, volo):
 
     for tratta in volo.get("flights", []):
         compagnia = tratta.get("airline", "N/D")
-
         partenza = tratta.get("departure_airport", {})
         arrivo = tratta.get("arrival_airport", {})
 
         print(f"Compagnia: {compagnia}")
-
-        print(
-            f"Partenza: "
-            f"{partenza.get('name', 'N/D')} "
-            f"- {partenza.get('time', 'N/D')}"
-        )
-
-        print(
-            f"Arrivo: "
-            f"{arrivo.get('name', 'N/D')} "
-            f"- {arrivo.get('time', 'N/D')}"
-        )
-
+        print(f"Partenza: {partenza.get('name', 'N/D')} - {partenza.get('time', 'N/D')}")
+        print(f"Arrivo: {arrivo.get('name', 'N/D')} - {arrivo.get('time', 'N/D')}")
         print()
 
 
@@ -129,23 +166,21 @@ def main():
 
             try:
                 dati = cerca_voli(origin, destination)
-
                 volo = estrai_volo_piu_economico(dati)
 
                 if volo:
-                    stampa_risultato(
-                        origin,
-                        destination,
-                        volo
-                    )
+                    stampa_risultato(origin, destination, volo)
+
+                    prezzo = volo["price"]
+
+                    if prezzo <= MAX_PRICE:
+                        messaggio = crea_testo_volo(origin, destination, volo)
+                        invia_notifica_telegram(messaggio)
                 else:
                     print("Nessun volo trovato.")
 
             except Exception as errore:
-                print(
-                    f"Errore su {origin} → {destination}: "
-                    f"{errore}"
-                )
+                print(f"Errore su {origin} → {destination}: {errore}")
 
 
 if __name__ == "__main__":
