@@ -1,19 +1,16 @@
 import os
 import requests
-from dotenv import load_dotenv
-
-load_dotenv()
 
 SERPAPI_KEY = os.getenv("SERPAPI_KEY")
 
-ORIGINS = os.getenv("ORIGINS", "FCO").split(",")
-DESTINATIONS = os.getenv("DESTINATIONS", "LHR").split(",")
+ORIGINS = (os.getenv("ORIGINS") or "FCO").split(",")
+DESTINATIONS = (os.getenv("DESTINATIONS") or "LHR").split(",")
 
 DEPARTURE_DATE = os.getenv("DEPARTURE_DATE")
 RETURN_DATE = os.getenv("RETURN_DATE")
 
 ADULTS = int(os.getenv("ADULTS") or "2")
-CURRENCY = os.getenv("CURRENCY", "EUR")
+CURRENCY = os.getenv("CURRENCY") or "EUR"
 MAX_PRICE = float(os.getenv("MAX_PRICE") or "250")
 
 SERPAPI_URL = "https://serpapi.com/search.json"
@@ -34,92 +31,92 @@ def cerca_voli(origin, destination):
         "type": "1"
     }
 
-    response = requests.get(SERPAPI_URL, params=params, timeout=60)
-    response.raise_for_status()
+    response = requests.get(
+        SERPAPI_URL,
+        params=params,
+        timeout=60
+    )
+
+    if response.status_code != 200:
+        print(f"\nErrore su {origin} → {destination}")
+        print(f"HTTP {response.status_code}")
+        print(response.text)
+        return None
+
     return response.json()
 
 
-def mostra_debug(dati):
-    print("\n--- DEBUG RISPOSTA SERPAPI ---")
+def estrai_volo_piu_economico(dati):
+    if not dati:
+        return None
 
-    if "error" in dati:
-        print("ERRORE SERPAPI:")
-        print(dati["error"])
-        return
-
-    print("Chiavi ricevute dalla risposta:")
-    print(list(dati.keys()))
-
-    if "search_metadata" in dati:
-        print("\nStato ricerca:")
-        print(dati["search_metadata"].get("status"))
-
-    if "best_flights" in dati:
-        print(f"best_flights trovati: {len(dati['best_flights'])}")
-    else:
-        print("best_flights non presente.")
-
-    if "other_flights" in dati:
-        print(f"other_flights trovati: {len(dati['other_flights'])}")
-    else:
-        print("other_flights non presente.")
-
-    print("--- FINE DEBUG ---\n")
-
-
-def estrai_prezzo_minore(dati):
     voli = []
 
     voli.extend(dati.get("best_flights", []))
     voli.extend(dati.get("other_flights", []))
 
-    voli_con_prezzo = []
+    voli_validi = [
+        volo
+        for volo in voli
+        if isinstance(volo.get("price"), (int, float))
+    ]
 
-    for volo in voli:
-        prezzo = volo.get("price")
-
-        if isinstance(prezzo, (int, float)):
-            voli_con_prezzo.append(volo)
-
-    if not voli_con_prezzo:
+    if not voli_validi:
         return None
 
-    return min(voli_con_prezzo, key=lambda volo: volo["price"])
+    return min(
+        voli_validi,
+        key=lambda volo: volo["price"]
+    )
 
 
 def stampa_risultato(origin, destination, volo):
     prezzo = volo["price"]
 
-    print("-" * 60)
+    print("\n" + "=" * 60)
     print(f"Rotta: {origin} → {destination}")
     print(f"Prezzo totale per {ADULTS} persone: {prezzo} {CURRENCY}")
 
     if prezzo <= MAX_PRICE:
-        print("OFFERTA INTERESSANTE: prezzo sotto la soglia.")
+        print("OFFERTA INTERESSANTE")
     else:
-        print("Prezzo sopra la soglia.")
+        print("Prezzo sopra la soglia")
+
+    print("-" * 60)
 
     for tratta in volo.get("flights", []):
-        compagnia = tratta.get("airline", "Compagnia non disponibile")
+        compagnia = tratta.get("airline", "N/D")
+
         partenza = tratta.get("departure_airport", {})
         arrivo = tratta.get("arrival_airport", {})
 
-        print()
         print(f"Compagnia: {compagnia}")
-        print(f"Partenza: {partenza.get('name')} - {partenza.get('time')}")
-        print(f"Arrivo: {arrivo.get('name')} - {arrivo.get('time')}")
+
+        print(
+            f"Partenza: "
+            f"{partenza.get('name', 'N/D')} "
+            f"- {partenza.get('time', 'N/D')}"
+        )
+
+        print(
+            f"Arrivo: "
+            f"{arrivo.get('name', 'N/D')} "
+            f"- {arrivo.get('time', 'N/D')}"
+        )
+
+        print()
 
 
 def main():
-    if not SERPAPI_KEY:
-        print("Errore: manca SERPAPI_KEY nel file .env")
-        return
-
-    print("Avvio controllo prezzi voli con SerpApi...")
+    print("Avvio controllo prezzi voli")
     print(f"Partenza: {DEPARTURE_DATE}")
     print(f"Ritorno: {RETURN_DATE}")
     print(f"Adulti: {ADULTS}")
     print(f"Soglia prezzo: {MAX_PRICE} {CURRENCY}")
+
+    if not SERPAPI_KEY:
+        print("ERRORE: SERPAPI_KEY mancante")
+        return
 
     for origin in ORIGINS:
         origin = origin.strip().upper()
@@ -127,24 +124,28 @@ def main():
         for destination in DESTINATIONS:
             destination = destination.strip().upper()
 
-            print("-" * 60)
-            print(f"Controllo {origin} → {destination}...")
+            print("\n" + "-" * 60)
+            print(f"Controllo {origin} → {destination}")
 
             try:
                 dati = cerca_voli(origin, destination)
-                mostra_debug(dati)
 
-                volo_migliore = estrai_prezzo_minore(dati)
+                volo = estrai_volo_piu_economico(dati)
 
-                if volo_migliore:
-                    stampa_risultato(origin, destination, volo_migliore)
+                if volo:
+                    stampa_risultato(
+                        origin,
+                        destination,
+                        volo
+                    )
                 else:
-                    print(f"{origin} → {destination}")
-                    print("Nessun volo con prezzo leggibile trovato.")
+                    print("Nessun volo trovato.")
 
             except Exception as errore:
-                print(f"Errore su {origin} → {destination}")
-                print(errore)
+                print(
+                    f"Errore su {origin} → {destination}: "
+                    f"{errore}"
+                )
 
 
 if __name__ == "__main__":
