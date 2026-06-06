@@ -5,15 +5,15 @@ SERPAPI_KEY = os.getenv("SERPAPI_KEY")
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 
-ORIGINS = (os.getenv("ORIGINS") or "FCO").split(",")
-DESTINATIONS = (os.getenv("DESTINATIONS") or "LHR").split(",")
+ORIGINS = [x.strip() for x in (os.getenv("ORIGINS") or "FCO").split(",")]
+DESTINATIONS = [x.strip() for x in (os.getenv("DESTINATIONS") or "LHR").split(",")]
 
-DEPARTURE_DATE = os.getenv("DEPARTURE_DATE")
-RETURN_DATE = os.getenv("RETURN_DATE")
+DEPARTURE_DATE = (os.getenv("DEPARTURE_DATE") or "").strip()
+RETURN_DATE = (os.getenv("RETURN_DATE") or "").strip()
 
-ADULTS = int(os.getenv("ADULTS") or "2")
-CURRENCY = os.getenv("CURRENCY") or "EUR"
-MAX_PRICE = float(os.getenv("MAX_PRICE") or "250")
+ADULTS = int((os.getenv("ADULTS") or "2").strip())
+CURRENCY = (os.getenv("CURRENCY") or "EUR").strip()
+MAX_PRICE = float((os.getenv("MAX_PRICE") or "250").strip())
 
 SERPAPI_URL = "https://serpapi.com/search.json"
 
@@ -76,18 +76,23 @@ def estrai_volo_piu_economico(dati):
         return None
 
     voli = []
+
     voli.extend(dati.get("best_flights", []))
     voli.extend(dati.get("other_flights", []))
 
     voli_validi = [
-        volo for volo in voli
+        volo
+        for volo in voli
         if isinstance(volo.get("price"), (int, float))
     ]
 
     if not voli_validi:
         return None
 
-    return min(voli_validi, key=lambda volo: volo["price"])
+    return min(
+        voli_validi,
+        key=lambda volo: volo["price"]
+    )
 
 
 def crea_testo_volo(origin, destination, volo):
@@ -134,8 +139,14 @@ def stampa_risultato(origin, destination, volo):
         arrivo = tratta.get("arrival_airport", {})
 
         print(f"Compagnia: {compagnia}")
-        print(f"Partenza: {partenza.get('name', 'N/D')} - {partenza.get('time', 'N/D')}")
-        print(f"Arrivo: {arrivo.get('name', 'N/D')} - {arrivo.get('time', 'N/D')}")
+        print(
+            f"Partenza: {partenza.get('name', 'N/D')} "
+            f"- {partenza.get('time', 'N/D')}"
+        )
+        print(
+            f"Arrivo: {arrivo.get('name', 'N/D')} "
+            f"- {arrivo.get('time', 'N/D')}"
+        )
         print()
 
 
@@ -163,16 +174,14 @@ def main():
         return
 
     for origin in ORIGINS:
-        origin = origin.strip().upper()
-
         for destination in DESTINATIONS:
-            destination = destination.strip().upper()
 
             print("\n" + "-" * 60)
             print(f"Controllo {origin} → {destination}")
 
             try:
                 dati = cerca_voli(origin, destination)
+
                 volo = estrai_volo_piu_economico(dati)
 
                 if volo:
@@ -181,13 +190,23 @@ def main():
                     prezzo = volo["price"]
 
                     if prezzo <= MAX_PRICE:
-                        messaggio = crea_testo_volo(origin, destination, volo)
-                        invia_notifica_telegram(messaggio)
+                        messaggio = crea_testo_volo(
+                            origin,
+                            destination,
+                            volo
+                        )
+
+                        invia_notifica_telegram(
+                            messaggio
+                        )
                 else:
                     print("Nessun volo trovato.")
 
             except Exception as errore:
-                print(f"Errore su {origin} → {destination}: {errore}")
+                print(
+                    f"Errore su {origin} → "
+                    f"{destination}: {errore}"
+                )
 
 
 if __name__ == "__main__":
