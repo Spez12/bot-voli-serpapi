@@ -5,6 +5,9 @@ on:
   schedule:
     - cron: "0 */6 * * *"
 
+permissions:
+  contents: write
+
 jobs:
   controllo-voli:
     runs-on: ubuntu-latest
@@ -42,3 +45,11 @@ jobs:
           echo '```text' >> $GITHUB_STEP_SUMMARY
           cat risultato.txt >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
+
+      - name: Salva iscritti aggiornati
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add subscribers.json telegram_offset.txt
+          git commit -m "Aggiorna iscritti Telegram" || echo "Nessuna modifica da salvare"
+          git push
