@@ -30,6 +30,7 @@ jobs:
           DESTINATIONS: ${{ vars.DESTINATIONS }}
           DEPARTURE_DATE: ${{ vars.DEPARTURE_DATE }}
           RETURN_DATE: ${{ vars.RETURN_DATE }}
+          TRIP_PERIODS: ${{ vars.TRIP_PERIODS }}
           ADULTS: ${{ vars.ADULTS }}
           CURRENCY: ${{ vars.CURRENCY }}
           MAX_PRICE: ${{ vars.MAX_PRICE }}
